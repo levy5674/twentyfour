@@ -12,38 +12,40 @@ op('x', A, B, R) :- R is A * B,
   A >= B.
 op('/', A, B, R) :- R is A / B.
 
-solve(A, B, C, D, VAL, [OP3, OP2, OP1, W, X, Y, Z]) :-
-  ensure_loaded(library(lists)),
-  permutation([A,B,C,D], [W,X,Y,Z]),
-  op(OP1, W, X, R1),
-  op(OP2, R1, Y, R2),
-  op(OP3, R2, Z, VAL).
+isdigit(X) :- ensure_loaded(library(lists)),
+        nth(_, [1,2,3,4,5,6,7,8,9], X).
 
-solve(A, B, C, D, VAL, [OP3, OP2, W, X, OP1, Y, Z]) :-
-  ensure_loaded(library(lists)),
-  permutation([A,B,C,D], [W,X,Y,Z]),
-  op(OP1, Y, Z, R1),
-  op(OP2, W, X, R2),
-  op(OP3, R2, R1, VAL).
+isop(X) :- ensure_loaded(library(lists)),
+        nth(_, ['+', '-', 'x', '/'], X).
 
-solve(A, B, C, D, VAL, [OP3, W, OP2, X, OP1, Y, Z]) :-
-  ensure_loaded(library(lists)),
-  permutation([A,B,C,D], [W,X,Y,Z]),
-  op(OP1, Y, Z, R1),
-  op(OP2, X, R1, R2),
-  op(OP3, W, R2, VAL).
+winner(24).
+winner(24.0).
 
-win(A,B,C,D,EXPR) :-
-  solve(A,B,C,D,VAL,EXPR),
-  nth(_, [24, 24.0], VAL).
+solve([[V1,X1], [V2,X2]], [VAL, [OP, X1, X2]]) :- op(OP, V1, V2, VAL).
+solve([[V1,X1], [V2,X2] | T], ANS) :- op(OP, V1, V2, VAL1),
+        solve([[VAL1, [OP, X1, X2]] | T], ANS).
+solve([[V1,X1], [V2,X2] | T], ANS) :- op(OP, V1, V2, VAL1),
+        solve([T | [VAL1, [OP, X1, X2]]], ANS).
 
 
-% special case for 8 / (1 - (2/3))
-win(A, B, C, D, ['/', Z, OP, Y, '/', W, X]) :-
-    ensure_loaded(library(lists)),
-    permutation([A,B,C,D], [W,X,Y,Z]),
-    nth(_, ['+', '-'], OP),
-    XY is X * Y,
-    XZ is X * Z,
-    op(OP, XY, W, R1),
-    op('/', XZ, R1, 24.0).
+
+win(A,B,C,D,S) :- ensure_loaded(library(lists)),
+        permutation([A,B,C,D], [W,X,Y,Z]),
+        solve([[W,W], [X,X], [Y,Y], [Z,Z]], [VAL, S]),
+        winner(VAL).
+
+win(A,B,C,D,S) :- ensure_loaded(library(lists)),
+        permutation([A,B,C,D], [W,X,Y,Z]),
+        solve([[W,W], [X,X]], ANS1),
+        solve([[Y,Y], [Z,Z]], ANS2),
+        solve([ANS1, ANS2], [VAL,S]),
+        winner(VAL).
+
+% special case [/, 6, [-, 1, [/, 3, 4]]]
+win(A,B,C,D,['/',Z, [OP, Y, [/, X, W]]]) :- ensure_loaded(library(lists)),
+        permutation([A,B,C,D], [W,X,Y,Z]),
+        nth(_, ['+', '-'], OP),
+        WY is W * Y,
+        WZ is W * Z,
+        op(OP, WY, X, R1),
+        op('/', WZ, R1, 24.0).
